@@ -13,7 +13,6 @@ contract Adjudicator {
 
     enum StateType {
         PRE_FUND_SETUP,
-        PRE_FUND_SETUP_ACK,
         POST_FUND_SETUP,
         POST_FUND_SETUP_ACK,
         Game,
@@ -26,15 +25,17 @@ contract Adjudicator {
     }
 
     struct State {
+        StateType stateType;
         Channel channel;
         uint8 turnNum;
         Resolution resolution;
     }
 
-    struct ChannelFunds {
-        bool aliceFunded;
-        bool bobFunded;
+    struct ChannelFund {
+        bool hasAliceFunded;
+        bool hasBobFunded;
         Resolution resolution;
+        bool isSet;
     }
 
     struct Signature {
@@ -47,6 +48,8 @@ contract Adjudicator {
         Signature signature;
     }
 
+    mapping(bytes32 => ChannelFund) public channelFunds;
+
     function hash(Channel memory channel) pure public returns (bytes32) {
         return keccak256(abi.encode(
             channel.alice,
@@ -56,7 +59,7 @@ contract Adjudicator {
     }
 
     function hash(State memory state) pure public returns (bytes32) {
-        return keccak256(abi.encode(state.channel, state.turnNum, state.resolution));
+        return keccak256(abi.encode(state.stateType, state.channel, state.turnNum, state.resolution));
     }
 
     using ECDSA for bytes32;
@@ -64,15 +67,17 @@ contract Adjudicator {
         return (msgHash.toEthSignedMessageHash().recover(signature.signature) == signature.signer);
     }
 
-    function createChannel(Move memory preFundSetup, Move memory preFundSetupAck) public pure {
+    function createChannel(Move memory preFundSetup, Move memory preFundSetupAck) public payable {
         bool aliceBegan = (
             preFundSetup.signature.signer == preFundSetup.state.channel.alice
             && preFundSetupAck.signature.signer == preFundSetup.state.channel.bob
+            && preFundSetup.signature.signer == msg.sender
         );
 
         bool bobBegan = (
             preFundSetupAck.signature.signer == preFundSetup.state.channel.alice
             && preFundSetup.signature.signer == preFundSetup.state.channel.bob
+            && preFundSetup.signature.signer == msg.sender
         );
 
         require(aliceBegan || bobBegan);
@@ -81,7 +86,43 @@ contract Adjudicator {
             && isSigned(hash(preFundSetupAck.state), preFundSetupAck.signature)
         );
 
-//        require(validMove(preFundSetup, preFundSetupAck));
+        require(preFundSetup.state.stateType == StateType.PRE_FUND_SETUP);
+        require(preFundSetup.state.turnNum == 0);
+        require(hash(preFundSetup.state) == hash(preFundSetupAck.state));
+
+        if (aliceBegan) {
+            require(msg.value == preFundSetup.state.resolution.aliceAmount);
+        } else {
+            require(msg.value == preFundSetup.state.resolution.bobAmount);
+        }
+
+        Channel memory channel = preFundSetup.state.channel;
+        bytes32 channelHash = hash(channel);
+
+        if (channelFunds[channelHash].isSet) {
+            if (aliceBegan) {
+                require(channelFunds[channelHash].hasAliceFunded == false);
+                channelFunds[channelHash].hasAliceFunded = true;
+                channelFunds[channelHash].resolution.aliceAmount = msg.value;
+            } else {
+                require(channelFunds[channelHash].hasBobFunded == false);
+                channelFunds[channelHash].hasBobFunded = true;
+                channelFunds[channelHash].resolution.bobAmount = msg.value;
+            }
+        } else {
+            channelFunds[channelHash].isSet = true;
+            if (aliceBegan) {
+                channelFunds[channelHash].hasAliceFunded = true;
+                channelFunds[channelHash].hasBobFunded = false;
+                channelFunds[channelHash].resolution.aliceAmount = msg.value;
+                channelFunds[channelHash].resolution.bobAmount = 0;
+            } else {
+                channelFunds[channelHash].hasAliceFunded = false;
+                channelFunds[channelHash].hasBobFunded = true;
+                channelFunds[channelHash].resolution.aliceAmount = 0;
+                channelFunds[channelHash].resolution.bobAmount = msg.value;
+            }
+        }
     }
 
     function validTransition(State memory fromState, State memory toState) pure public returns (bool) {
