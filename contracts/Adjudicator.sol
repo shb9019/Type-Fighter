@@ -1,5 +1,6 @@
 pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
+import './ECDSA.sol';
 
 contract Adjudicator {
     address public owner;
@@ -38,7 +39,7 @@ contract Adjudicator {
 
     struct Signature {
         address signer;
-        uint256 sign;
+        bytes signature;
     }
 
     struct Move {
@@ -58,9 +59,12 @@ contract Adjudicator {
         return keccak256(abi.encode(state.channel, state.turnNum, state.resolution));
     }
 
-    function createChannel(Move preFundSetup, Move preFundSetupAck) pure public {
-        require(validMove(move1, move2));
+    using ECDSA for bytes32;
+    function isSigned(bytes32 msgHash, Signature memory signature) public pure returns (bool) {
+        return (msgHash.toEthSignedMessageHash().recover(signature.signature) == signature.signer);
+    }
 
+    function createChannel(Move memory preFundSetup, Move memory preFundSetupAck) public pure {
         bool aliceBegan = (
             preFundSetup.signature.signer == preFundSetup.state.channel.alice
             && preFundSetupAck.signature.signer == preFundSetup.state.channel.bob
@@ -72,6 +76,12 @@ contract Adjudicator {
         );
 
         require(aliceBegan || bobBegan);
+        require(
+            isSigned(hash(preFundSetup.state), preFundSetup.signature)
+            && isSigned(hash(preFundSetupAck.state), preFundSetupAck.signature)
+        );
+
+//        require(validMove(preFundSetup, preFundSetupAck));
     }
 
     function validTransition(State memory fromState, State memory toState) pure public returns (bool) {
