@@ -7,20 +7,23 @@ const encodeParam = (type, value) => {
 contract("State Hash Test", async accounts => {
     it("should return same state hash", async () => {
         let adjudicator = await Adjudicator.deployed();
+
         let hash1 = "1", hash2 = "2";
         try {
-            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 10),
-                [encodeParam('uint256', 10), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1),
             ]);
 
-            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 10),
-                [encodeParam('uint256', 10), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1),
             ]);
         } catch (err) {
             console.log(err);
@@ -34,18 +37,20 @@ contract("State Hash Test", async accounts => {
 
         let hash1 = "1", hash2 = "1";
         try {
-            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 10),
-                [encodeParam('uint256', 10), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1)
             ]);
 
-            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 11),
-                [encodeParam('uint256', 10), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1)
             ]);
         } catch (err) {
             console.log(err);
@@ -59,18 +64,20 @@ contract("State Hash Test", async accounts => {
 
         let hash1 = "1", hash2 = "1";
         try {
-            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 10),
-                [encodeParam('uint256', 10), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1)
             ]);
 
-            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 2)],
                 encodeParam('uint256', 11),
-                [encodeParam('uint256', 10), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1)
             ]);
         } catch (err) {
             console.log(err);
@@ -84,18 +91,20 @@ contract("State Hash Test", async accounts => {
 
         let hash1 = "1", hash2 = "1";
         try {
-            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 10),
-                [encodeParam('uint256', 11), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 11), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1)
             ]);
 
-            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 11),
-                [encodeParam('uint256', 10), encodeParam('uint256', 11)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 11)],
+                encodeParam('uint256', 1)
             ]);
         } catch (err) {
             console.log(err);
@@ -109,18 +118,20 @@ contract("State Hash Test", async accounts => {
 
         let hash1 = "1", hash2 = "1";
         try {
-            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash1 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 0),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 10),
-                [encodeParam('uint256', 10), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1)
             ]);
 
-            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+            hash2 = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
                 encodeParam('uint8', 1),
                 [accounts[0], accounts[1], encodeParam('uint256', 1)],
                 encodeParam('uint256', 10),
-                [encodeParam('uint256', 10), encodeParam('uint256', 10)]
+                [encodeParam('uint256', 10), encodeParam('uint256', 10)],
+                encodeParam('uint256', 1)
             ]);
         } catch (err) {
             console.log(err);

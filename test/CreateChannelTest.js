@@ -12,11 +12,12 @@ contract("Create Channel Test", async accounts => {
 
         let adjudicator = await Adjudicator.deployed();
 
-        let stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call([
+        let stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call([
             encodeParam('uint8', 0),
             [accounts[0], accounts[1], encodeParam('uint256', 1)],
             encodeParam('uint256', 10),
-            [encodeParam('uint256', 11), encodeParam('uint256', 10)]
+            [encodeParam('uint256', 11), encodeParam('uint256', 10)],
+            encodeParam('uint256', 1),
         ]);
 
         let signature = await web3.eth.accounts.sign(stateHash, privateKey);
@@ -42,9 +43,10 @@ contract("Create Channel Test", async accounts => {
         const aliceResolution = encodeParam('uint256', 5000000);
         const bobResolution = encodeParam('uint256', 5000000);
         const resolutions = [aliceResolution, bobResolution];
+        const timestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
 
-        const state = [preFundSetupType, channel, turnNum, resolutions];
-        const stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call(state);
+        const state = [preFundSetupType, channel, turnNum, resolutions, timestamp];
+        const stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call(state);
 
         let aliceSignature = await web3.eth.accounts.sign(stateHash, alicePrivateKey);
         let bobSignature = await web3.eth.accounts.sign(stateHash, bobPrivateKey);
@@ -53,7 +55,7 @@ contract("Create Channel Test", async accounts => {
         bobSignature = [bobPublicKey, bobSignature.signature];
 
         try {
-            await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256),(address,bytes)))'].sendTransaction(
                 [state, aliceSignature],
                 [state, bobSignature], {
                     from: alicePublicKey,
@@ -61,7 +63,7 @@ contract("Create Channel Test", async accounts => {
                 }
             );
 
-            await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256),(address,bytes)))'].sendTransaction(
                 [state, bobSignature],
                 [state, aliceSignature], {
                     from: bobPublicKey,
@@ -98,9 +100,10 @@ contract("Create Channel Test", async accounts => {
         const aliceResolution = encodeParam('uint256', 5000000);
         const bobResolution = encodeParam('uint256', 5000000);
         const resolutions = [aliceResolution, bobResolution];
+        const timestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
 
-        const state = [preFundSetupType, channel, turnNum, resolutions];
-        const stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call(state);
+        const state = [preFundSetupType, channel, turnNum, resolutions, timestamp];
+        const stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call(state);
         let fakeStateHash = stateHash + "0";
 
         let aliceSignature = await web3.eth.accounts.sign(stateHash, alicePrivateKey);
@@ -110,7 +113,7 @@ contract("Create Channel Test", async accounts => {
         bobSignature = [bobPublicKey, bobSignature.signature];
 
         try {
-            await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256),(address,bytes)))'].sendTransaction(
                 [state, bobSignature],
                 [state, aliceSignature], {
                     from: bobPublicKey,
@@ -140,9 +143,10 @@ contract("Create Channel Test", async accounts => {
         const aliceResolution = encodeParam('uint256', 5000000);
         const bobResolution = encodeParam('uint256', 5000000);
         const resolutions = [aliceResolution, bobResolution];
+        const timestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
 
-        const state = [preFundSetupType, channel, turnNum, resolutions];
-        const stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256)))'].call(state);
+        const state = [preFundSetupType, channel, turnNum, resolutions, timestamp];
+        const stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256))'].call(state);
 
         let aliceSignature = await web3.eth.accounts.sign(stateHash, alicePrivateKey);
         // Alice is forging as Bob
@@ -152,7 +156,7 @@ contract("Create Channel Test", async accounts => {
         bobSignature = [bobPublicKey, bobSignature.signature];
 
         try {
-            await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256),(address,bytes)))'].sendTransaction(
                 [state, aliceSignature],
                 [state, bobSignature], {
                     from: alicePublicKey,

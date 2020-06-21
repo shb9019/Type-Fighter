@@ -29,6 +29,7 @@ contract Adjudicator {
         Channel channel;
         uint8 turnNum;
         Resolution resolution;
+        uint timestamp;
     }
 
     struct ChannelFund {
@@ -36,6 +37,7 @@ contract Adjudicator {
         bool hasBobFunded;
         Resolution resolution;
         bool isSet;
+        bool isFunded;
     }
 
     struct Signature {
@@ -59,7 +61,13 @@ contract Adjudicator {
     }
 
     function hash(State memory state) pure public returns (bytes32) {
-        return keccak256(abi.encode(state.stateType, state.channel, state.turnNum, state.resolution));
+        return keccak256(abi.encode(
+            state.stateType,
+            state.channel,
+            state.turnNum,
+            state.resolution,
+            state.timestamp
+        ));
     }
 
     using ECDSA for bytes32;
@@ -104,10 +112,12 @@ contract Adjudicator {
                 require(channelFunds[channelHash].hasAliceFunded == false);
                 channelFunds[channelHash].hasAliceFunded = true;
                 channelFunds[channelHash].resolution.aliceAmount = msg.value;
+                channelFunds[channelHash].isFunded = true;
             } else {
                 require(channelFunds[channelHash].hasBobFunded == false);
                 channelFunds[channelHash].hasBobFunded = true;
                 channelFunds[channelHash].resolution.bobAmount = msg.value;
+                channelFunds[channelHash].isFunded = true;
             }
         } else {
             channelFunds[channelHash].isSet = true;
