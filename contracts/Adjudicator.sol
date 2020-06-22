@@ -18,13 +18,17 @@ contract Adjudicator {
         POST_FUND_SETUP,
         POST_FUND_SETUP_ACK,
         Game,
-        Conclude
+        CONCLUDE
     }
 
-    // @dev Amounts bid by the playes
+    // @dev Amounts bid by the players
     struct Resolution {
         uint aliceAmount;
         uint bobAmount;
+    }
+
+    struct Play {
+        uint letterCount;
     }
 
     // @dev Single state instance - Unique for every move
@@ -34,6 +38,11 @@ contract Adjudicator {
         uint8 turnNum;
         Resolution resolution;
         uint timestamp;
+        // Timestamp of opponent's last move
+        uint opponent_timestamp;
+        // Amount staked in this turn
+        uint stake;
+        Play play;
     }
 
     // @dev Initial fund deposited in contract for channel
@@ -56,19 +65,27 @@ contract Adjudicator {
         Signature signature;
     }
 
-    // @dev Mapping of channels to corresponding funds
+    struct Challenge {
+        Move challengerMove;
+        Move opponentMove;
+        uint timestamp;
+        bool isExpired;
+        bool isSet;
+    }
+
+    // @dev Mapping of channel Hashes to corresponding funds
     mapping(bytes32 => ChannelFund) public channelFunds;
+    // @dev Mapping of channel Hashes to registered Challenges
+    mapping(bytes32 => Challenge) public challenges;
+
+    uint public challengeExpirationLimit = 3;
 
     /**
      * @dev Helper function to compute hash of a channel object
      * @param channel Channel, Channel object to be hashed
      */
     function hash(Channel memory channel) pure public returns (bytes32) {
-        return keccak256(abi.encode(
-                channel.alice,
-                channel.bob,
-                channel.channelNonce
-            ));
+        return keccak256(abi.encode(channel));
     }
 
     /**
@@ -76,13 +93,7 @@ contract Adjudicator {
      * @param state State, State object to be hashed
      */
     function hash(State memory state) pure public returns (bytes32) {
-        return keccak256(abi.encode(
-                state.stateType,
-                state.channel,
-                state.turnNum,
-                state.resolution,
-                state.timestamp
-            ));
+        return keccak256(abi.encode(state));
     }
 
     /**
@@ -123,6 +134,8 @@ contract Adjudicator {
         require(preFundSetup.state.stateType == StateType.PRE_FUND_SETUP);
         require(preFundSetup.state.turnNum == 0);
         require(hash(preFundSetup.state) == hash(preFundSetupAck.state));
+
+        require(preFundSetup.state.timestamp <= now && preFundSetupAck.state.timestamp <= now);
     }
 
     /**
@@ -151,7 +164,7 @@ contract Adjudicator {
         if (channelFunds[channelHash].isSet) {
             if (aliceBegan) {
                 require(channelFunds[channelHash].hasAliceFunded == false);
-                channelFunds[channelHash].hasAliceFunded = true;:w
+                channelFunds[channelHash].hasAliceFunded = true;
                 channelFunds[channelHash].resolution.aliceAmount = msg.value;
                 channelFunds[channelHash].isFunded = true;
             } else {
@@ -177,18 +190,101 @@ contract Adjudicator {
     }
 
     /**
-     * @dev Return funds in case opponent does not submit funds but signs prefund setup
-     * @param preFundSetup Move, Signed move by msg.sender for prefund setup
-     * @param preFundSetupAck Signature, Signed move by opponent for prefund setup
+     * @dev Check if two state in succession are valid
+     * @param fromState State, First State
+     * @param toState State, state immediately succeeding fromState
      */
-    function redeemPreFund(Move memory preFundSetup, Move memory preFundSetupAck) public {
-        validatePreFundSetupMoves(preFundSetup, preFundSetupAck, msg.sender);
+    function validTransition(State memory fromState, State memory toState) public view returns (bool) {
+        require(hash(fromState.channel) == hash(toState.channel));
 
-        Channel memory channel = preFundSetup.state.channel;
-        bytes32 channelHash = hash(channel);
+        bool isValid = true;
+        if (fromState.stateType == StateType.PRE_FUND_SETUP) {
+            if (toState.stateType == StateType.POST_FUND_SETUP) {
+                isValid = isValid && (toState.timestamp > fromState.timestamp);
+                isValid = isValid && (toState.opponent_timestamp == fromState.timestamp);
+                // Control how early the timestamp can be set by a malicious user
+                isValid = isValid && (toState.timestamp <= (now + 60));
+                isValid = isValid && (fromState.turnNum == toState.turnNum);
+            } else if (toState.stateType == StateType.CONCLUDE) {
 
-        require(channelFunds[channelHash].isSet == true);
-        require(channelFunds[channelHash].isFunded == false);
-        require(now >= preFundSetup.state.timestamp + 5);
+            } else {
+                isValid = false;
+            }
+        }
+
+        return isValid;
+    }
+
+    /**
+     * @dev Given previous move, check if next move is valid
+     * @param opponentMove Move, Opponent participant's move
+     * @param selfMove Move, Move to be validated
+     */
+    function validMove(Move memory opponentMove, Move memory selfMove) public view returns (bool) {
+        require(isSigned(hash(opponentMove.state), opponentMove.signature) && isSigned(hash(selfMove.state), selfMove.signature));
+        require(
+            (opponentMove.signature.signer == opponentMove.state.channel.alice
+            && selfMove.signature.signer == selfMove.state.channel.bob)
+            || (opponentMove.signature.signer == opponentMove.state.channel.bob
+        && selfMove.signature.signer == selfMove.state.channel.alice)
+        );
+
+        return validMove(opponentMove, selfMove);
+    }
+
+    /**
+     * @dev On Chain transaction to force another particiapant to make the next move.
+     *      Used when opponent does not respond or responds with an invalid move.
+     * @param opponentMove Move, Last signed move of opponent
+     * @param selfMove Move, Next move of the sender which opponent does not respond to
+     */
+    function forceMove(Move memory opponentMove, Move memory selfMove) public view {
+        require(selfMove.signature.signer == msg.sender);
+        require(validMove(opponentMove, selfMove));
+
+        bytes32 channelHash = hash(opponentMove.state.channel);
+        Challenge memory challenge = challenges[channelHash];
+
+        require(challenge.isSet == false);
+
+        // Check if expired
+        if (now >= (challenge.timestamp + challengeExpirationLimit)) {
+            challenge.isExpired = true;
+            challenges[channelHash].isExpired = true;
+        }
+        require(challenge.isExpired == false);
+
+        challenge.challengerMove = selfMove;
+        challenge.opponentMove = opponentMove;
+        challenge.timestamp = now;
+        challenge.isExpired = false;
+        challenge.isSet = true;
+
+        challenges[channelHash] = challenge;
+    }
+
+    /**
+     * @dev Return funds in case opponent does not submit funds but signs prefund setup
+     * @param channelHash bytes32, Channel whose challenge is to be redeemed
+     */
+    function redeemResolution(bytes32 channelHash) public view {
+        Challenge memory challenge = challenges[channelHash];
+        require(challenge.isSet == true);
+
+        // Check if expired
+        if (now >= (challenge.timestamp + challengeExpirationLimit)) {
+            challenge.isExpired = true;
+            challenges[channelHash].isExpired = true;
+        }
+        require(challenge.isExpired == true);
+
+        Resolution memory resolution = challenge.opponentMove.state.resolution;
+        Channel memory channel = challenge.opponentMove.state.channel;
+
+        address payable alice = address(uint160(channel.alice));
+        address payable bob = address(uint160(channel.bob));
+
+        alice.transfer(resolution.aliceAmount);
+        bob.transfer(resolution.bobAmount);
     }
 }
