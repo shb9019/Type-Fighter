@@ -16,8 +16,8 @@ contract Adjudicator {
     enum StateType {
         PRE_FUND_SETUP,
         POST_FUND_SETUP,
-        POST_FUND_SETUP_ACK,
-        Game,
+        GAME_PROPOSE,
+        GAME_ACCEPT,
         CONCLUDE
     }
 
@@ -68,6 +68,7 @@ contract Adjudicator {
     struct Challenge {
         Move challengerMove;
         Move opponentMove;
+        Move respondedMove;
         uint timestamp;
         bool isExpired;
         bool isSet;
@@ -198,17 +199,22 @@ contract Adjudicator {
         require(hash(fromState.channel) == hash(toState.channel));
 
         bool isValid = true;
+        bytes32 channelHash = hash(fromState.channel);
+
+        isValid = isValid && (toState.timestamp >= fromState.timestamp);
+        isValid = isValid && (toState.opponent_timestamp == fromState.timestamp);
+        // Control how early the timestamp can be set by a malicious user
+        isValid = isValid && (toState.timestamp <= (now + 60));
+
         if (fromState.stateType == StateType.PRE_FUND_SETUP) {
             if (toState.stateType == StateType.POST_FUND_SETUP) {
-                isValid = isValid && (toState.timestamp >= fromState.timestamp);
-                isValid = isValid && (toState.opponent_timestamp == fromState.timestamp);
-                // Control how early the timestamp can be set by a malicious user
-                isValid = isValid && (toState.timestamp <= (now + 60));
+                isValid = isValid && (channelFunds[channelHash].isSet == true);
                 isValid = isValid && (fromState.turnNum == toState.turnNum);
                 isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
                 isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
             } else if (toState.stateType == StateType.CONCLUDE) {
-
+                isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+                isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
             } else {
                 isValid = false;
             }
@@ -235,7 +241,7 @@ contract Adjudicator {
     }
 
     /**
-     * @dev On Chain transaction to force another particiapant to make the next move.
+     * @dev On Chain transaction to force another participant to make the next move.
      *      Used when opponent does not respond or responds with an invalid move.
      * @param opponentMove Move, Last signed move of opponent
      * @param selfMove Move, Next move of the sender which opponent does not respond to
@@ -258,6 +264,24 @@ contract Adjudicator {
         challenges[channelHash] = challenge;
     }
 
+    function respondWithMove(bytes32 channelHash, Move memory respondMove) public {
+        require(respondMove.signature.signer == msg.sender);
+
+        Challenge memory challenge = challenges[channelHash];
+        require(challenge.isSet == true);
+
+        // Check if expired
+        if (now >= (challenge.timestamp + challengeExpirationLimit)) {
+            challenge.isExpired = true;
+            challenges[channelHash].isExpired = true;
+        }
+        require(challenge.isExpired == false);
+        require(validMove(challenge.challengerMove, respondMove));
+
+        challenges[channelHash].respondedMove = respondMove;
+        challenges[channelHash].isSet = false;
+    }
+
     /**
      * @dev Return funds in case opponent does not submit funds but signs prefund setup
      * @param channelHash bytes32, Channel whose challenge is to be redeemed
@@ -274,6 +298,11 @@ contract Adjudicator {
         require(challenge.isExpired == true);
 
         Resolution memory resolution = challenge.opponentMove.state.resolution;
+
+        if (challenge.opponentMove.state.stateType == StateType.PRE_FUND_SETUP) {
+            resolution = channelFunds[channelHash].resolution;
+        }
+
         Channel memory channel = challenge.opponentMove.state.channel;
 
         address payable alice = address(uint160(channel.alice));
