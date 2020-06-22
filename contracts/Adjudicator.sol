@@ -200,11 +200,13 @@ contract Adjudicator {
         bool isValid = true;
         if (fromState.stateType == StateType.PRE_FUND_SETUP) {
             if (toState.stateType == StateType.POST_FUND_SETUP) {
-                isValid = isValid && (toState.timestamp > fromState.timestamp);
+                isValid = isValid && (toState.timestamp >= fromState.timestamp);
                 isValid = isValid && (toState.opponent_timestamp == fromState.timestamp);
                 // Control how early the timestamp can be set by a malicious user
                 isValid = isValid && (toState.timestamp <= (now + 60));
                 isValid = isValid && (fromState.turnNum == toState.turnNum);
+                isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+                isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
             } else if (toState.stateType == StateType.CONCLUDE) {
 
             } else {
@@ -229,7 +231,7 @@ contract Adjudicator {
         && selfMove.signature.signer == selfMove.state.channel.alice)
         );
 
-        return validMove(opponentMove, selfMove);
+        return validTransition(opponentMove.state, selfMove.state);
     }
 
     /**
@@ -238,7 +240,7 @@ contract Adjudicator {
      * @param opponentMove Move, Last signed move of opponent
      * @param selfMove Move, Next move of the sender which opponent does not respond to
      */
-    function forceMove(Move memory opponentMove, Move memory selfMove) public view {
+    function forceMove(Move memory opponentMove, Move memory selfMove) public {
         require(selfMove.signature.signer == msg.sender);
         require(validMove(opponentMove, selfMove));
 
@@ -246,13 +248,6 @@ contract Adjudicator {
         Challenge memory challenge = challenges[channelHash];
 
         require(challenge.isSet == false);
-
-        // Check if expired
-        if (now >= (challenge.timestamp + challengeExpirationLimit)) {
-            challenge.isExpired = true;
-            challenges[channelHash].isExpired = true;
-        }
-        require(challenge.isExpired == false);
 
         challenge.challengerMove = selfMove;
         challenge.opponentMove = opponentMove;
@@ -267,7 +262,7 @@ contract Adjudicator {
      * @dev Return funds in case opponent does not submit funds but signs prefund setup
      * @param channelHash bytes32, Channel whose challenge is to be redeemed
      */
-    function redeemResolution(bytes32 channelHash) public view {
+    function redeemResolution(bytes32 channelHash) public {
         Challenge memory challenge = challenges[channelHash];
         require(challenge.isSet == true);
 
