@@ -9,7 +9,20 @@ const bobKeys = {
 
 const mnemonic = "spy know loan effort survey depend indoor parade predict suffer float room";
 
+const methodSignatures = {
+    channelHash: 'hash((address,address,uint256))',
+    stateHash: 'hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))',
+    createChannel: 'createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))',
+    validMove: 'validMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))',
+    forceMove: 'forceMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))',
+    challenges: 'challenges(bytes32)',
+    redeemResolution: 'redeemResolution(bytes32)',
+    channelFunds: 'channelFunds(bytes32)',
+    respondWithMove: 'respondWithMove(bytes32,((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'
+};
+
 module.exports = {
     aliceKeys,
-    bobKeys
+    bobKeys,
+    methodSignatures
 };

@@ -1,5 +1,5 @@
 const Adjudicator = artifacts.require('Adjudicator');
-const {aliceKeys, bobKeys} = require("./config");
+const {aliceKeys, bobKeys, methodSignatures} = require("./config");
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -19,7 +19,7 @@ const createTestChannel = async (adjudicator, channelExists) => {
     const preFundSetupType = encodeParam('uint8', 0);
     const channelNonce = encodeParam('uint256', 9);
     const channel = [alicePublicKey, bobPublicKey, channelNonce];
-    const channelHash = await adjudicator.methods['hash((address,address,uint256))'].call(channel);
+    const channelHash = await adjudicator.methods[methodSignatures.channelHash].call(channel);
     const turnNum = encodeParam('uint256', 0);
     const aliceResolution = encodeParam('uint256', 5000000);
     const bobResolution = encodeParam('uint256', 5000000);
@@ -30,7 +30,7 @@ const createTestChannel = async (adjudicator, channelExists) => {
     const play = [encodeParam('uint256', 18)];
 
     const state = [preFundSetupType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
-    const stateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(state);
+    const stateHash = await adjudicator.methods[methodSignatures.stateHash].call(state);
 
     let aliceSignature = await web3.eth.accounts.sign(stateHash, alicePrivateKey);
     let bobSignature = await web3.eth.accounts.sign(stateHash, bobPrivateKey);
@@ -39,14 +39,14 @@ const createTestChannel = async (adjudicator, channelExists) => {
     bobSignature = [bobPublicKey, bobSignature.signature];
 
     if (!channelExists) {
-        await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+        await adjudicator.methods[methodSignatures.createChannel].sendTransaction(
             [state, aliceSignature],
             [state, bobSignature], {
                 from: alicePublicKey,
                 value: 5000000
             });
 
-        await adjudicator.methods['createChannel(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+        await adjudicator.methods[methodSignatures.createChannel].sendTransaction(
             [state, bobSignature],
             [state, aliceSignature], {
                 from: bobPublicKey,

@@ -1,5 +1,5 @@
 const Adjudicator = artifacts.require('Adjudicator');
-const {aliceKeys, bobKeys} = require("./config");
+const {aliceKeys, bobKeys, methodSignatures} = require("./config");
 const {sleep, encodeParam, createTestChannel} = require("./utils");
 
 contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
@@ -22,7 +22,7 @@ contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
         const play = [encodeParam('uint256', 0)];
 
         const postFundSetupstate = [postFundSetupType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
-        const postFundSetupstateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(postFundSetupstate);
+        const postFundSetupstateHash = await adjudicator.methods[methodSignatures.stateHash].call(postFundSetupstate);
 
         let aliceSignature = await web3.eth.accounts.sign(postFundSetupstateHash, aliceKeys.private);
         aliceSignature = [aliceKeys.public, aliceSignature.signature];
@@ -33,7 +33,7 @@ contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
         try {
             postFundSetupstate.resolutions.aliceResolution = encodeParam('uint256', 10000000);
 
-            await adjudicator.methods['forceMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].call(
+            await adjudicator.methods[methodSignatures.forceMove].call(
                 [bobPreFundSetupMove.state, bobPreFundSetupMove.signature],
                 [postFundSetupstate, aliceSignature], {
                     from: aliceKeys.public
@@ -46,7 +46,7 @@ contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
         }
 
         try {
-            const tx = await adjudicator.methods['forceMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+            const tx = await adjudicator.methods[methodSignatures.forceMove].sendTransaction(
                 [bobPreFundSetupMove.state, bobPreFundSetupMove.signature],
                 [postFundSetupstate, aliceSignature], {
                     from: aliceKeys.public
@@ -60,10 +60,10 @@ contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
             assert(false, "Force Move failed:" + err.toString());
         }
 
-        const channelHash = await adjudicator.methods['hash((address,address,uint256))'].call(channel);
+        const channelHash = await adjudicator.methods[methodSignatures.channelHash].call(channel);
 
         try {
-            const challenge = await adjudicator.methods['challenges(bytes32)'].call(channelHash);
+            const challenge = await adjudicator.methods[methodSignatures.challenges].call(channelHash);
 
             assert(challenge.isSet === true, "Challenge should not be set");
             assert(challenge.isExpired === false, "Challenge should not be expired yet");
@@ -76,7 +76,7 @@ contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
         }
 
         try {
-            await adjudicator.methods['redeemResolution(bytes32)'].call(channelHash);
+            await adjudicator.methods[methodSignatures.redeemResolution].call(channelHash);
             assert(false, "Resolution does not wait for expiration");
         } catch (err) {
             assert(true);
@@ -86,7 +86,7 @@ contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
         await sleep(3000);
 
         try {
-            const tx = await adjudicator.methods['redeemResolution(bytes32)'].sendTransaction(channelHash);
+            const tx = await adjudicator.methods[methodSignatures.redeemResolution].sendTransaction(channelHash);
             const gasUsed = tx.receipt.gasUsed;
             const txFee = gasPrice * gasUsed;
             aliceGasCost += txFee;
@@ -120,13 +120,13 @@ contract("Force Move from PreFundSetup to Conclude", async accounts => {
         const play = [encodeParam('uint256', 0)];
 
         const concludeSetupState = [concludeType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
-        const concludeSetupStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(concludeSetupState);
+        const concludeSetupStateHash = await adjudicator.methods[methodSignatures.stateHash].call(concludeSetupState);
 
         let aliceSignature = await web3.eth.accounts.sign(concludeSetupStateHash, aliceKeys.private);
         aliceSignature = [aliceKeys.public, aliceSignature.signature];
 
         try {
-            await adjudicator.methods['forceMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods[methodSignatures.forceMove].sendTransaction(
                 [bobPreFundSetupMove.state, bobPreFundSetupMove.signature],
                 [concludeSetupState, aliceSignature], {
                     from: aliceKeys.public
@@ -137,10 +137,10 @@ contract("Force Move from PreFundSetup to Conclude", async accounts => {
             assert(false, "Force Move failed!");
         }
 
-        const channelHash = await adjudicator.methods['hash((address,address,uint256))'].call(channel);
+        const channelHash = await adjudicator.methods[methodSignatures.channelHash].call(channel);
 
         try {
-            const challenge = await adjudicator.methods['challenges(bytes32)'].call(channelHash);
+            const challenge = await adjudicator.methods[methodSignatures.challenges].call(channelHash);
 
             assert(challenge.isSet === true, "Challenge should not be set");
             assert(challenge.isExpired === false, "Challenge should not be expired yet");
@@ -171,13 +171,13 @@ contract("Respond with move for PreFundSetup", async accounts => {
         const play = [encodeParam('uint256', 0)];
 
         const postFundSetupstate = [postFundSetupType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
-        const postFundSetupstateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(postFundSetupstate);
+        const postFundSetupstateHash = await adjudicator.methods[methodSignatures.stateHash].call(postFundSetupstate);
 
         let aliceSignature = await web3.eth.accounts.sign(postFundSetupstateHash, aliceKeys.private);
         aliceSignature = [aliceKeys.public, aliceSignature.signature];
 
         try {
-            const tx = await adjudicator.methods['forceMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+            const tx = await adjudicator.methods[methodSignatures.forceMove].sendTransaction(
                 [bobPreFundSetupMove.state, bobPreFundSetupMove.signature],
                 [postFundSetupstate, aliceSignature], {
                     from: aliceKeys.public
@@ -188,10 +188,10 @@ contract("Respond with move for PreFundSetup", async accounts => {
             assert(false, "Force Move failed!");
         }
 
-        const channelHash = await adjudicator.methods['hash((address,address,uint256))'].call(channel);
+        const channelHash = await adjudicator.methods[methodSignatures.channelHash].call(channel);
 
         try {
-            await adjudicator.methods['challenges(bytes32)'].call(channelHash);
+            await adjudicator.methods[methodSignatures.challenges].call(channelHash);
         } catch (err) {
             assert(false, "Challenge is not setup");
         }
@@ -200,7 +200,7 @@ contract("Respond with move for PreFundSetup", async accounts => {
         opponent_timestamp = alicePreFundSetupMove.state[4];
 
         const bobPostFundSetupState = [postFundSetupType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
-        const bobPostFundSetupStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(bobPostFundSetupState);
+        const bobPostFundSetupStateHash = await adjudicator.methods[methodSignatures.stateHash].call(bobPostFundSetupState);
 
         let bobSignature = await web3.eth.accounts.sign(bobPostFundSetupStateHash, bobKeys.private);
         bobSignature = [bobKeys.public, bobSignature.signature];
@@ -208,7 +208,7 @@ contract("Respond with move for PreFundSetup", async accounts => {
         await sleep(200);
 
         try {
-            await adjudicator.methods['respondWithMove(bytes32,((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods[methodSignatures.respondWithMove].sendTransaction(
                 channelHash,
                 [bobPostFundSetupState, bobSignature], {
                     from: bobKeys.public
@@ -222,7 +222,7 @@ contract("Respond with move for PreFundSetup", async accounts => {
         await sleep(100);
 
         try {
-            const challenge = await adjudicator.methods['challenges(bytes32)'].call(channelHash);
+            const challenge = await adjudicator.methods[methodSignatures.challenges].call(channelHash);
 
             assert(challenge.isSet === false, "Challenge should not be set");
             assert(challenge.respondedMove.signature.signer === bobKeys.public, "Wrong signature signer for opponent move");

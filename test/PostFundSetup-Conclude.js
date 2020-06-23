@@ -1,6 +1,6 @@
 const Adjudicator = artifacts.require('Adjudicator');
-const {aliceKeys, bobKeys} = require("./config");
-const {sleep, encodeParam, createTestChannel} = require("./utils");
+const {aliceKeys, bobKeys, methodSignatures} = require("./config");
+const {encodeParam, createTestChannel} = require("./utils");
 
 // Generate Bob's Post Fund and Alice's Conclude Moves
 const getAliceBobMoves = async (adjudicator, alicePreFundSetupMove) => {
@@ -17,7 +17,7 @@ const getAliceBobMoves = async (adjudicator, alicePreFundSetupMove) => {
     const stake = encodeParam('uint256', 0);
 
     const bobState = [postFundSetupType, channel, turnNum, resolutions, bobTimestamp, bobOpponentTimestamp, stake, play];
-    const bobStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(bobState);
+    const bobStateHash = await adjudicator.methods[methodSignatures.stateHash].call(bobState);
 
     let bobSignature = await web3.eth.accounts.sign(bobStateHash, bobKeys.private);
     bobSignature = [bobKeys.public, bobSignature.signature];
@@ -31,7 +31,7 @@ const getAliceBobMoves = async (adjudicator, alicePreFundSetupMove) => {
     const alicePlay = [encodeParam('uint256', 0)];
 
     const aliceState = [concludeType, channel, aliceTurnNum, resolutions, aliceTimestamp, aliceOpponentTimestamp, aliceStake, alicePlay];
-    const aliceStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(aliceState);
+    const aliceStateHash = await adjudicator.methods[methodSignatures.stateHash].call(aliceState);
 
     let aliceSignature = await web3.eth.accounts.sign(aliceStateHash, aliceKeys.private);
     aliceSignature = [aliceKeys.public, aliceSignature.signature];
@@ -46,7 +46,7 @@ contract("Validate Move from Post Fund to Conclude", async accounts => {
         const [aliceState, aliceSignature, bobState, bobSignature] = await getAliceBobMoves(adjudicator, alicePreFundSetupMove);
 
         try {
-            const valid = await adjudicator.methods['validMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].call(
+            const valid = await adjudicator.methods[methodSignatures.validMove].call(
                 [bobState, bobSignature],
                 [aliceState, aliceSignature]
             );
@@ -65,10 +65,10 @@ contract("Validate Move from Post Fund to Conclude", async accounts => {
         try {
             const fakeAliceState = JSON.parse(JSON.stringify(aliceState));
             fakeAliceState[3][0] = encodeParam('uint256', 5000001);
-            const fakeAliceStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(fakeAliceState);
+            const fakeAliceStateHash = await adjudicator.methods[methodSignatures.stateHash].call(fakeAliceState);
             let fakeAliceSignature = await web3.eth.accounts.sign(fakeAliceStateHash, aliceKeys.private);
             fakeAliceSignature = [aliceKeys.public, fakeAliceSignature.signature];
-            const valid = await adjudicator.methods['validMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].call(
+            const valid = await adjudicator.methods[methodSignatures.validMove].call(
                 [bobState, bobSignature],
                 [fakeAliceState, fakeAliceSignature]
             );
@@ -86,11 +86,11 @@ contract("Validate Move from Post Fund to Conclude", async accounts => {
         try {
             const fakeAliceState = JSON.parse(JSON.stringify(aliceState));
             fakeAliceState[5] = encodeParam('uint256', 30);
-            const fakeAliceStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(fakeAliceState);
+            const fakeAliceStateHash = await adjudicator.methods[methodSignatures.stateHash].call(fakeAliceState);
             let fakeAliceSignature = await web3.eth.accounts.sign(fakeAliceStateHash, aliceKeys.private);
             fakeAliceSignature = [aliceKeys.public, fakeAliceSignature.signature];
 
-            const valid = await adjudicator.methods['validMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].call(
+            const valid = await adjudicator.methods[methodSignatures.validMove].call(
                 [bobState, bobSignature],
                 [fakeAliceState, fakeAliceSignature]
             );
@@ -108,11 +108,11 @@ contract("Validate Move from Post Fund to Conclude", async accounts => {
         try {
             const fakeAliceState = JSON.parse(JSON.stringify(aliceState));
             fakeAliceState[1][2] = encodeParam('uint256', 30);
-            const fakeAliceStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(fakeAliceState);
+            const fakeAliceStateHash = await adjudicator.methods[methodSignatures.stateHash].call(fakeAliceState);
             let fakeAliceSignature = await web3.eth.accounts.sign(fakeAliceStateHash, aliceKeys.private);
             fakeAliceSignature = [aliceKeys.public, fakeAliceSignature.signature];
 
-            const valid = await adjudicator.methods['validMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].call(
+            const valid = await adjudicator.methods[methodSignatures.validMove].call(
                 [bobState, bobSignature],
                 [fakeAliceState, fakeAliceSignature]
             );
@@ -121,5 +121,25 @@ contract("Validate Move from Post Fund to Conclude", async accounts => {
             assert(true);
         }
     });
+});
 
+contract("Respond to Post Fund to Conclude Force Move", async accounts => {
+    it("should accept the respond move", async () => {
+        let adjudicator = await Adjudicator.deployed();
+        const [alicePreFundSetupMove,] = await createTestChannel(adjudicator);
+        const [aliceState, aliceSignature, bobState, bobSignature] = await getAliceBobMoves(adjudicator, alicePreFundSetupMove);
+
+        try {
+            const valid = await adjudicator.methods[methodSignatures.forceMove].sendTransaction(
+                [bobState, bobSignature],
+                [aliceState, aliceSignature], {
+                    from: aliceKeys.public
+                }
+            );
+        } catch (err) {
+            assert(false, err.toString());
+        }
+
+
+    });
 });

@@ -1,5 +1,5 @@
 const Adjudicator = artifacts.require('Adjudicator');
-const {aliceKeys, bobKeys} = require("./config");
+const {aliceKeys, bobKeys, methodSignatures} = require("./config");
 const {sleep, encodeParam, createTestChannel} = require("./utils");
 
 // Generate Bob's Post Fund and Alice's Game Propose Moves
@@ -17,7 +17,7 @@ const getBobPostFundSetupMove = async (adjudicator, alicePreFundSetupMove) => {
     const stake = encodeParam('uint256', 0);
 
     const bobState = [postFundSetupType, channel, turnNum, resolutions, bobTimestamp, bobOpponentTimestamp, stake, play];
-    const bobStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(bobState);
+    const bobStateHash = await adjudicator.methods[methodSignatures.stateHash].call(bobState);
 
     let bobSignature = await web3.eth.accounts.sign(bobStateHash, bobKeys.private);
     bobSignature = [bobKeys.public, bobSignature.signature];
@@ -31,7 +31,7 @@ const getBobPostFundSetupMove = async (adjudicator, alicePreFundSetupMove) => {
     const alicePlay = [encodeParam('uint256', 18)];
 
     const aliceState = [gameProposeType, channel, aliceTurnNum, resolutions, aliceTimestamp, aliceOpponentTimestamp, aliceStake, alicePlay];
-    const aliceStateHash = await adjudicator.methods['hash((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)))'].call(aliceState);
+    const aliceStateHash = await adjudicator.methods[methodSignatures.stateHash].call(aliceState);
 
     let aliceSignature = await web3.eth.accounts.sign(aliceStateHash, aliceKeys.private);
     aliceSignature = [aliceKeys.public, aliceSignature.signature];
@@ -47,7 +47,7 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
         const channel = alicePreFundSetupMove.state[1];
 
         try {
-            await adjudicator.methods['forceMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods[methodSignatures.forceMove].sendTransaction(
                 [bobState, bobSignature],
                 [aliceState, aliceSignature], {
                     from: aliceKeys.public
@@ -57,10 +57,10 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
             assert(false, "Force Move failed:" + err.toString());
         }
 
-        const channelHash = await adjudicator.methods['hash((address,address,uint256))'].call(channel);
+        const channelHash = await adjudicator.methods[methodSignatures.channelHash].call(channel);
 
         try {
-            const challenge = await adjudicator.methods['challenges(bytes32)'].call(channelHash);
+            const challenge = await adjudicator.methods[methodSignatures.challenges].call(channelHash);
 
             assert(challenge.isSet === true, "Challenge should not be set");
             assert(challenge.isExpired === false, "Challenge should not be expired yet");
@@ -81,7 +81,7 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
         try {
             aliceState[6] = encodeParam('uint256', 0);
 
-            await adjudicator.methods['forceMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods[methodSignatures.forceMove].sendTransaction(
                 [bobState, bobSignature],
                 [aliceState, aliceSignature], {
                     from: aliceKeys.public
@@ -101,7 +101,7 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
         try {
             aliceState[6] = encodeParam('uint256', 10000000);
 
-            await adjudicator.methods['validMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].call(
+            await adjudicator.methods[methodSignatures.validMove].call(
                 [bobState, bobSignature],
                 [aliceState, aliceSignature], {
                     from: aliceKeys.public
@@ -121,7 +121,7 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
         try {
             aliceState[7] = [encodeParam('uint256', 0)];
 
-            await adjudicator.methods['forceMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].sendTransaction(
+            await adjudicator.methods[methodSignatures.forceMove].sendTransaction(
                 [bobState, bobSignature],
                 [aliceState, aliceSignature], {
                     from: aliceKeys.public
@@ -141,7 +141,7 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
         try {
             aliceState[2] = encodeParam('uint256', 0);
 
-            await adjudicator.methods['validMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].call(
+            await adjudicator.methods[methodSignatures.validMove].call(
                 [bobState, bobSignature],
                 [aliceState, aliceSignature], {
                     from: aliceKeys.public
@@ -161,7 +161,7 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
         try {
             aliceState[5] = encodeParam('uint256', Math.floor(new Date() / 1000));
 
-            await adjudicator.methods['validMove(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256)),(address,bytes)))'].call(
+            await adjudicator.methods[methodSignatures.validMove].call(
                 [bobState, bobSignature],
                 [aliceState, aliceSignature], {
                     from: aliceKeys.public
