@@ -21,6 +21,10 @@ contract Adjudicator {
         CONCLUDE
     }
 
+    function returnValue() public pure returns (StateType) {
+        return StateType.POST_FUND_SETUP;
+    }
+
     // @dev Amounts bid by the players
     struct Resolution {
         uint aliceAmount;
@@ -204,6 +208,7 @@ contract Adjudicator {
         isValid = isValid && (toState.timestamp >= fromState.timestamp);
         isValid = isValid && (toState.opponent_timestamp == fromState.timestamp);
         // Control how early the timestamp can be set by a malicious user
+        isValid = isValid && (toState.timestamp >= (now - 60));
         isValid = isValid && (toState.timestamp <= (now + 60));
 
         if (fromState.stateType == StateType.PRE_FUND_SETUP) {
@@ -218,6 +223,29 @@ contract Adjudicator {
             } else {
                 isValid = false;
             }
+        } else if (fromState.stateType == StateType.POST_FUND_SETUP) {
+            if (toState.stateType == StateType.GAME_PROPOSE) {
+                isValid = isValid && (fromState.turnNum < toState.turnNum);
+                isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+                isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+                isValid = isValid && (toState.stake > 0);
+                isValid = isValid && (toState.stake <= toState.resolution.aliceAmount);
+                isValid = isValid && (toState.play.letterCount > 0);
+                // FIXME: Setting a random maximum letter limit. Implement an algorithm to validate
+                //        a given letter count and time period using a normal distribution.
+                isValid = isValid && (toState.play.letterCount <= 200);
+                isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
+                isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
+            } else if (toState.stateType == StateType.CONCLUDE) {
+                isValid = isValid && (fromState.turnNum < toState.turnNum);
+                isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+                isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+
+            } else {
+                isValid = false;
+            }
+        } else {
+
         }
 
         return isValid;
@@ -234,7 +262,7 @@ contract Adjudicator {
             (opponentMove.signature.signer == opponentMove.state.channel.alice
             && selfMove.signature.signer == selfMove.state.channel.bob)
             || (opponentMove.signature.signer == opponentMove.state.channel.bob
-        && selfMove.signature.signer == selfMove.state.channel.alice)
+            && selfMove.signature.signer == selfMove.state.channel.alice)
         );
 
         return validTransition(opponentMove.state, selfMove.state);
@@ -276,6 +304,7 @@ contract Adjudicator {
             challenges[channelHash].isExpired = true;
         }
         require(challenge.isExpired == false);
+
         require(validMove(challenge.challengerMove, respondMove));
 
         challenges[channelHash].respondedMove = respondMove;
@@ -295,6 +324,7 @@ contract Adjudicator {
             challenge.isExpired = true;
             challenges[channelHash].isExpired = true;
         }
+
         require(challenge.isExpired == true);
 
         Resolution memory resolution = challenge.opponentMove.state.resolution;
