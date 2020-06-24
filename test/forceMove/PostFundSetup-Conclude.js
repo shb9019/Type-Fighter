@@ -1,6 +1,6 @@
 const Adjudicator = artifacts.require('Adjudicator');
-const {aliceKeys, bobKeys, methodSignatures} = require("./config");
-const {encodeParam, createTestChannel} = require("./utils");
+const {aliceKeys, bobKeys, methodSignatures} = require("../config");
+const {encodeParam, createTestChannel} = require("../utils");
 
 // Generate Bob's Post Fund and Alice's Conclude Moves
 const getAliceBobMoves = async (adjudicator, alicePreFundSetupMove) => {

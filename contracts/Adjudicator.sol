@@ -199,7 +199,7 @@ contract Adjudicator {
      * @param fromState State, First State
      * @param toState State, state immediately succeeding fromState
      */
-    function validTransition(State memory fromState, State memory toState) public view returns (bool) {
+    function validTransition(State memory fromState, State memory toState, bool isAlice) public view returns (bool) {
         require(hash(fromState.channel) == hash(toState.channel));
 
         bool isValid = true;
@@ -240,12 +240,48 @@ contract Adjudicator {
                 isValid = isValid && (fromState.turnNum < toState.turnNum);
                 isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
                 isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
-
             } else {
                 isValid = false;
             }
-        } else {
+        } else if (fromState.stateType == StateType.GAME_PROPOSE) {
+            if (toState.stateType == StateType.GAME_ACCEPT) {
+                isValid = isValid && (fromState.turnNum == toState.turnNum);
+                isValid = isValid && (fromState.stake == toState.stake);
 
+                isValid = isValid && (toState.play.letterCount > 0);
+                isValid = isValid && (toState.play.letterCount <= 200);
+
+                uint256 finalAliceAmount;
+                uint256 finalBobAmount;
+                if (fromState.play.letterCount > toState.play.letterCount) {
+                    if (isAlice == false) {
+                        finalAliceAmount = (fromState.resolution.aliceAmount + fromState.stake);
+                        finalBobAmount = (fromState.resolution.bobAmount - fromState.stake);
+                    } else {
+                        finalAliceAmount = (fromState.resolution.aliceAmount - fromState.stake);
+                        finalBobAmount = (fromState.resolution.bobAmount + fromState.stake);
+                    }
+                } else if (fromState.play.letterCount < toState.play.letterCount) {
+                    if (isAlice == false) {
+                        finalAliceAmount = (fromState.resolution.aliceAmount - fromState.stake);
+                        finalBobAmount = (fromState.resolution.bobAmount + fromState.stake);
+                    } else {
+                        finalAliceAmount = (fromState.resolution.aliceAmount + fromState.stake);
+                        finalBobAmount = (fromState.resolution.bobAmount - fromState.stake);
+                    }
+                } else {
+                    finalAliceAmount = fromState.resolution.aliceAmount;
+                    finalBobAmount = fromState.resolution.bobAmount;
+                }
+                require(toState.resolution.aliceAmount == finalAliceAmount);
+                require(toState.resolution.bobAmount == finalBobAmount);
+            } else if (toState.stateType == StateType.CONCLUDE) {
+                isValid = isValid && (fromState.turnNum < toState.turnNum);
+                isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+                isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+            } else {
+                isValid = false;
+            }
         }
 
         return isValid;
@@ -265,7 +301,9 @@ contract Adjudicator {
             && selfMove.signature.signer == selfMove.state.channel.alice)
         );
 
-        return validTransition(opponentMove.state, selfMove.state);
+        bool isAlice = (selfMove.signature.signer == selfMove.state.channel.alice);
+
+        return validTransition(opponentMove.state, selfMove.state, isAlice);
     }
 
     /**
