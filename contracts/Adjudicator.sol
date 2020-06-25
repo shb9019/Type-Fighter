@@ -58,6 +58,7 @@ contract Adjudicator {
         Resolution resolution;
         bool isSet;
         bool isFunded;
+        bool isWithdrawn;
     }
 
     struct Signature {
@@ -314,8 +315,7 @@ contract Adjudicator {
             isValid = isValid && (fromState.play.totalLetterCount == toState.play.opponentTotalLetterCount);
             isValid = isValid && (toState.stake == 0);
 
-            if (toState.stateType == StateType.CONCLUDE) {
-            } else {
+            if (toState.stateType != StateType.CONCLUDE) {
                 isValid = false;
             }
         } else {
@@ -388,7 +388,7 @@ contract Adjudicator {
     }
 
     /**
-     * @dev Return funds in case opponent does not submit funds but signs prefund setup
+     * @dev Return funds in case opponent does not submit funds but signs preFund setup
      * @param channelHash bytes32, Channel whose challenge is to be redeemed
      */
     function redeemResolution(bytes32 channelHash) public {
@@ -409,6 +409,11 @@ contract Adjudicator {
             resolution = channelFunds[channelHash].resolution;
         }
 
+        require(
+            (resolution.aliceAmount + resolution.bobAmount)
+            == (channelFunds[channelHash].resolution.aliceAmount + channelFunds[channelHash].resolution.bobAmount)
+        );
+
         Channel memory channel = challenge.opponentMove.state.channel;
 
         address payable alice = address(uint160(channel.alice));
@@ -416,5 +421,34 @@ contract Adjudicator {
 
         alice.transfer(resolution.aliceAmount);
         bob.transfer(resolution.bobAmount);
+
+        channelFunds[channelHash].isWithdrawn = true;
+    }
+
+    /**
+     * @dev Withdraw funds at the end of a cooperative game
+     * @param concludeAlice Move, Conclude move of Alice
+     * @param concludeBob Move, Conclude move of Bob
+     */
+    function withdrawFunds(Move memory concludeAlice, Move memory concludeBob) public {
+        require(validMove(concludeAlice, concludeBob));
+
+        Channel memory channel = concludeAlice.state.channel;
+        bytes32 channelHash = hash(channel);
+        require(channelFunds[channelHash].isSet == true);
+        require(channelFunds[channelHash].isFunded == true);
+
+        channelFunds[channelHash].isWithdrawn = true;
+
+        require(
+            (concludeAlice.state.resolution.aliceAmount + concludeAlice.state.resolution.bobAmount)
+            == (channelFunds[channelHash].resolution.aliceAmount + channelFunds[channelHash].resolution.bobAmount)
+        );
+
+        address payable alice = address(uint160(channel.alice));
+        address payable bob = address(uint160(channel.bob));
+
+        alice.transfer(concludeAlice.state.resolution.aliceAmount);
+        bob.transfer(concludeAlice.state.resolution.bobAmount);
     }
 }

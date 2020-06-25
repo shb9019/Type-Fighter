@@ -18,7 +18,8 @@ const methodSignatures = {
     challenges: 'challenges(bytes32)',
     redeemResolution: 'redeemResolution(bytes32)',
     channelFunds: 'channelFunds(bytes32)',
-    respondWithMove: 'respondWithMove(bytes32,((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256,uint256,uint256)),(address,bytes)))'
+    respondWithMove: 'respondWithMove(bytes32,((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256,uint256,uint256)),(address,bytes)))',
+    withdrawFunds: 'withdrawFunds(((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256,uint256,uint256)),(address,bytes)),((uint8,(address,address,uint256),uint8,(uint256,uint256),uint256,uint256,uint256,(uint256,uint256,uint256)),(address,bytes)))'
 };
 
 module.exports = {
