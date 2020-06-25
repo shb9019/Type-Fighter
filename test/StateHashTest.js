@@ -16,7 +16,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
 
             hash2 = await adjudicator.methods[methodSignatures.stateHash].call([
@@ -27,7 +27,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
         } catch (err) {
             console.log(err);
@@ -49,7 +49,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
 
             hash2 = await adjudicator.methods[methodSignatures.stateHash].call([
@@ -60,7 +60,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
         } catch (err) {
             console.log(err);
@@ -82,7 +82,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
 
             hash2 = await adjudicator.methods[methodSignatures.stateHash].call([
@@ -93,7 +93,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
         } catch (err) {
             console.log(err);
@@ -115,7 +115,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
 
             hash2 = await adjudicator.methods[methodSignatures.stateHash].call([
@@ -126,7 +126,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
         } catch (err) {
             console.log(err);
@@ -148,7 +148,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
 
             hash2 = await adjudicator.methods[methodSignatures.stateHash].call([
@@ -159,7 +159,7 @@ contract("State Hash Test", async accounts => {
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
                 encodeParam('uint256', 1),
-                [encodeParam('uint256', 1)]
+                [encodeParam('uint256', 1), encodeParam('uint256', 0), encodeParam('uint256', 0)]
             ]);
         } catch (err) {
             console.log(err);

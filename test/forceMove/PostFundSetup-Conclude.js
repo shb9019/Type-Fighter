@@ -13,7 +13,7 @@ const getAliceBobMoves = async (adjudicator, alicePreFundSetupMove) => {
     const resolutions = [aliceResolution, bobResolution];
     const bobOpponentTimestamp = alicePreFundSetupMove.state[4];
     const bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-    const play = [encodeParam('uint256', 0)];
+    const play = [encodeParam('uint256', 0), encodeParam('uint256', 0), encodeParam('uint256', 200)];
     const stake = encodeParam('uint256', 0);
 
     const bobState = [postFundSetupType, channel, turnNum, resolutions, bobTimestamp, bobOpponentTimestamp, stake, play];
@@ -28,7 +28,7 @@ const getAliceBobMoves = async (adjudicator, alicePreFundSetupMove) => {
     const aliceTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
     const aliceStake = encodeParam('uint256', 0);
     const aliceTurnNum = encodeParam('uint256', 1);
-    const alicePlay = [encodeParam('uint256', 0)];
+    const alicePlay = [encodeParam('uint256', 0), encodeParam('uint256', 0), encodeParam('uint256', 200)];
 
     const aliceState = [concludeType, channel, aliceTurnNum, resolutions, aliceTimestamp, aliceOpponentTimestamp, aliceStake, alicePlay];
     const aliceStateHash = await adjudicator.methods[methodSignatures.stateHash].call(aliceState);
@@ -39,7 +39,7 @@ const getAliceBobMoves = async (adjudicator, alicePreFundSetupMove) => {
     return [aliceState, aliceSignature, bobState, bobSignature];
 };
 
-contract("Validate Move from Post Fund to Conclude", async accounts => {
+contract("Create Force Move from Post Fund to Conclude", async accounts => {
     it("should succeed", async () => {
         let adjudicator = await Adjudicator.deployed();
         const [alicePreFundSetupMove, ] = await createTestChannel(adjudicator);

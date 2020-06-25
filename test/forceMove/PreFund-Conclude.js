@@ -16,7 +16,7 @@ contract("Force Move from PreFundSetup to Conclude", async accounts => {
         const timestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
         const opponent_timestamp = bobPreFundSetupMove.state[4];
         const stake = encodeParam('uint256', 0);
-        const play = [encodeParam('uint256', 0)];
+        const play = [encodeParam('uint256', 0), encodeParam('uint256', 0), encodeParam('uint256', 200)];
 
         const concludeSetupState = [concludeType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
         const concludeSetupStateHash = await adjudicator.methods[methodSignatures.stateHash].call(concludeSetupState);

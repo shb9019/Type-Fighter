@@ -13,7 +13,7 @@ const getBobPostFundSetupMove = async (adjudicator, alicePreFundSetupMove) => {
     const resolutions = [aliceResolution, bobResolution];
     const bobOpponentTimestamp = alicePreFundSetupMove.state[4];
     const bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-    const play = [encodeParam('uint256', 0)];
+    const play = [encodeParam('uint256', 0), encodeParam('uint256', 0), encodeParam('uint256', 200)];
     const stake = encodeParam('uint256', 0);
 
     const bobState = [postFundSetupType, channel, turnNum, resolutions, bobTimestamp, bobOpponentTimestamp, stake, play];
@@ -28,7 +28,7 @@ const getBobPostFundSetupMove = async (adjudicator, alicePreFundSetupMove) => {
     const aliceTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
     const aliceStake = encodeParam('uint256', 10);
     const aliceTurnNum = encodeParam('uint256', 1);
-    const alicePlay = [encodeParam('uint256', 18)];
+    const alicePlay = [encodeParam('uint256', 18), encodeParam('uint256', 0), encodeParam('uint256', 200)];
 
     const aliceState = [gameProposeType, channel, aliceTurnNum, resolutions, aliceTimestamp, aliceOpponentTimestamp, aliceStake, alicePlay];
     const aliceStateHash = await adjudicator.methods[methodSignatures.stateHash].call(aliceState);
@@ -62,7 +62,7 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
         try {
             const challenge = await adjudicator.methods[methodSignatures.challenges].call(channelHash);
 
-            assert(challenge.isSet === true, "Challenge should not be set");
+            assert(challenge.isSet === true, "Challenge should be set");
             assert(challenge.isExpired === false, "Challenge should not be expired yet");
             assert(challenge.opponentMove.signature.signer === bobKeys.public, "Wrong signature signer for opponent move");
             assert(challenge.challengerMove.signature.signer === aliceKeys.public, "Wrong signature signer for challenger move");
@@ -174,54 +174,6 @@ contract("Create ForceMove from PostFundSetup to GamePropose", async accounts =>
     });
 });
 
-contract("Respond With Conclude Move to Game Propose Force Move", async accounts => {
-    it ("should succeed", async () => {
-        let adjudicator = await Adjudicator.deployed();
-        const [alicePreFundSetupMove, bobPreFundSetupMove] = await createTestChannel(adjudicator, true);
-        const [bobState, bobSignature, aliceState, aliceSignature] = await getBobPostFundSetupMove(adjudicator, alicePreFundSetupMove);
-
-        try {
-            await adjudicator.methods[methodSignatures.forceMove].sendTransaction(
-                [bobState, bobSignature],
-                [aliceState, aliceSignature], {
-                    from: aliceKeys.public
-                }
-            );
-        } catch(err) {
-            assert(false, "Force Move failed:" + err.toString());
-        }
-
-        // Bob now responds with a conclude move
-        const channel = alicePreFundSetupMove.state[1];
-        const concludeType = encodeParam('uint8', 4);
-        const turnNum = encodeParam('uint256', 2);
-        const resolutions = aliceState[3];
-        const bobOpponentTimestamp = aliceState[4];
-        const bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-        const play = [encodeParam('uint256', 0)];
-        const stake = encodeParam('uint256', 0);
-
-        const bobConcludeState = [concludeType, channel, turnNum, resolutions, bobTimestamp, bobOpponentTimestamp, stake, play];
-        const bobConcludeStateHash = await adjudicator.methods[methodSignatures.stateHash].call(bobConcludeState);
-
-        let bobConcludeSignature = await web3.eth.accounts.sign(bobConcludeStateHash, bobKeys.private);
-        bobConcludeSignature = [bobKeys.public, bobConcludeSignature.signature];
-
-        const channelHash = await adjudicator.methods[methodSignatures.channelHash].call(channel);
-
-        try {
-            await adjudicator.methods[methodSignatures.respondWithMove].call(
-                channelHash,
-                [bobConcludeState, bobConcludeSignature], {
-                    from: bobKeys.public
-                }
-            );
-        } catch (err) {
-            assert(false, "Failed to respond with conclude: " + err.toString());
-        }
-    });
-});
-
 contract("Respond With Game Accept Move to Game Propose Force Move", async accounts => {
     it ("should succeed (Bob Wins)", async () => {
         let adjudicator = await Adjudicator.deployed();
@@ -245,8 +197,8 @@ contract("Respond With Game Accept Move to Game Propose Force Move", async accou
         const turnNum = aliceState[2];
         const resolutions = [encodeParam('uint256', 5000000 - 10), encodeParam('uint256', 5000000 + 10)];
         const bobOpponentTimestamp = aliceState[4];
-        const bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-        const play = [encodeParam('uint256', 20)];
+        const bobTimestamp = aliceState[4];
+        const play = [encodeParam('uint256', 20), encodeParam('uint256', 18), encodeParam('uint256', 200)];
         const stake = encodeParam('uint256', 10);
 
         const bobGameAcceptState = [
@@ -300,8 +252,8 @@ contract("Respond With Game Accept Move to Game Propose Force Move", async accou
         const turnNum = aliceState[2];
         const resolutions = [encodeParam('uint256', 5000000 + 10), encodeParam('uint256', 5000000 - 10)];
         const bobOpponentTimestamp = aliceState[4];
-        const bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-        const play = [encodeParam('uint256', 16)];
+        const bobTimestamp = aliceState[4];
+        const play = [encodeParam('uint256', 16), encodeParam('uint256', 18), encodeParam('uint256', 200)];
         const stake = encodeParam('uint256', 10);
 
         const bobGameAcceptState = [
@@ -355,8 +307,8 @@ contract("Respond With Game Accept Move to Game Propose Force Move", async accou
         const turnNum = aliceState[2];
         const resolutions = [encodeParam('uint256', 5000000 + 10), encodeParam('uint256', 5000000 - 10)];
         const bobOpponentTimestamp = aliceState[4];
-        const bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-        const play = [encodeParam('uint256', 20)];
+        const bobTimestamp = aliceState[4];
+        const play = [encodeParam('uint256', 20), encodeParam('uint256', 18), encodeParam('uint256', 200)];
         const stake = encodeParam('uint256', 10);
 
         const bobGameAcceptState = [
@@ -398,8 +350,8 @@ contract("Respond With Game Accept Move to Game Propose Force Move", async accou
         const turnNum = encodeParam('uint8', 20);
         const resolutions = [encodeParam('uint256', 5000000 - 12), encodeParam('uint256', 5000000 + 12)];
         const bobOpponentTimestamp = aliceState[4];
-        const bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-        const play = [encodeParam('uint256', 20)];
+        const bobTimestamp = aliceState[4];
+        const play = [encodeParam('uint256', 20), encodeParam('uint256', 18), encodeParam('uint256', 200)];
         const stake = encodeParam('uint256', 12);
 
         const bobGameAcceptState = [
@@ -441,8 +393,8 @@ contract("Respond With Game Accept Move to Game Propose Force Move", async accou
         const turnNum = encodeParam('uint8', 20);
         const resolutions = [encodeParam('uint256', 5000000 - 10), encodeParam('uint256', 5000000 + 10)];
         const bobOpponentTimestamp = aliceState[4];
-        const bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-        const play = [encodeParam('uint256', 20)];
+        const bobTimestamp = aliceState[4];
+        const play = [encodeParam('uint256', 20), encodeParam('uint256', 18), encodeParam('uint256', 200)];
         const stake = encodeParam('uint256', 10);
 
         const bobGameAcceptState = [

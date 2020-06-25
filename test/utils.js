@@ -27,7 +27,7 @@ const createTestChannel = async (adjudicator, channelExists) => {
     const timestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
     const opponent_timestamp = encodeParam('uint256', 0);
     const stake = encodeParam('uint256', 10);
-    const play = [encodeParam('uint256', 18)];
+    const play = [encodeParam('uint256', 0), encodeParam('uint256', 0), encodeParam('uint256', 200)];
 
     const state = [preFundSetupType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
     const stateHash = await adjudicator.methods[methodSignatures.stateHash].call(state);

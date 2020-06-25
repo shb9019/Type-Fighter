@@ -19,7 +19,7 @@ contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
         const timestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
         const opponent_timestamp = bobPreFundSetupMove.state[4];
         const stake = encodeParam('uint256', 0);
-        const play = [encodeParam('uint256', 0)];
+        const play = [encodeParam('uint256', 0), encodeParam('uint256', 0), encodeParam('uint256', 200)];
 
         const postFundSetupstate = [postFundSetupType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
         const postFundSetupstateHash = await adjudicator.methods[methodSignatures.stateHash].call(postFundSetupstate);
@@ -94,7 +94,8 @@ contract("Force Move from PreFundSetup to PostFundSetup", async accounts => {
             const finalAliceBalance = parseInt(await web3.eth.getBalance(aliceKeys.public));
             const finalBobBalance = parseInt(await web3.eth.getBalance(bobKeys.public));
 
-            assert.equal(((finalBobBalance / 1000000) - (initialBobBalance / 1000000)), 5, "Bob is not receiving back correct amount");
+            assert.isBelow(((finalBobBalance / 1000000) - (initialBobBalance / 1000000)), 6, "Bob is not receiving back correct amount");
+            assert.isAbove(((finalBobBalance / 1000000) - (initialBobBalance / 1000000)), 4, "Bob is not receiving back correct amount");
             assert.isBelow(((finalAliceBalance / 1000000) - (initialAliceBalance / 1000000) + (aliceGasCost / 1000000)), 6, "Alice is not receiving back correct amount");
             assert.isAbove(((finalAliceBalance / 1000000) - (initialAliceBalance / 1000000) + (aliceGasCost / 1000000)), 4, "Alice is not receiving back correct amount");
         } catch (err) {

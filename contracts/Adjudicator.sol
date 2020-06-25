@@ -32,7 +32,9 @@ contract Adjudicator {
     }
 
     struct Play {
-        uint letterCount;
+        uint totalLetterCount;
+        uint opponentTotalLetterCount;
+        uint gameLetterCount;
     }
 
     // @dev Single state instance - Unique for every move
@@ -202,6 +204,8 @@ contract Adjudicator {
     function validTransition(State memory fromState, State memory toState, bool isAlice) public view returns (bool) {
         require(hash(fromState.channel) == hash(toState.channel));
 
+        // TODO: Define ordering on the transactions i.e., GamePropose by Alice, GameAccept by Bob
+
         bool isValid = true;
         bytes32 channelHash = hash(fromState.channel);
 
@@ -210,6 +214,8 @@ contract Adjudicator {
         // Control how early the timestamp can be set by a malicious user
         isValid = isValid && (toState.timestamp >= (now - 60));
         isValid = isValid && (toState.timestamp <= (now + 60));
+        isValid = isValid && (toState.play.gameLetterCount == fromState.play.gameLetterCount);
+        isValid = isValid && (toState.play.opponentTotalLetterCount == fromState.play.totalLetterCount);
 
         if (fromState.stateType == StateType.PRE_FUND_SETUP) {
             if (toState.stateType == StateType.POST_FUND_SETUP) {
@@ -230,10 +236,11 @@ contract Adjudicator {
                 isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
                 isValid = isValid && (toState.stake > 0);
                 isValid = isValid && (toState.stake <= toState.resolution.aliceAmount);
-                isValid = isValid && (toState.play.letterCount > 0);
+                isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
+                isValid = isValid && (toState.play.totalLetterCount > 0);
                 // FIXME: Setting a random maximum letter limit. Implement an algorithm to validate
                 //        a given letter count and time period using a normal distribution.
-                isValid = isValid && (toState.play.letterCount <= 200);
+                isValid = isValid && (toState.play.totalLetterCount <= 200);
                 isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
                 isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
             } else if (toState.stateType == StateType.CONCLUDE) {
@@ -247,13 +254,12 @@ contract Adjudicator {
             if (toState.stateType == StateType.GAME_ACCEPT) {
                 isValid = isValid && (fromState.turnNum == toState.turnNum);
                 isValid = isValid && (fromState.stake == toState.stake);
-
-                isValid = isValid && (toState.play.letterCount > 0);
-                isValid = isValid && (toState.play.letterCount <= 200);
+                isValid = isValid && (fromState.timestamp == toState.timestamp);
+                isValid = isValid && (toState.play.totalLetterCount > 0);
 
                 uint256 finalAliceAmount;
                 uint256 finalBobAmount;
-                if (fromState.play.letterCount > toState.play.letterCount) {
+                if (fromState.play.totalLetterCount > toState.play.totalLetterCount) {
                     if (isAlice == false) {
                         finalAliceAmount = (fromState.resolution.aliceAmount + fromState.stake);
                         finalBobAmount = (fromState.resolution.bobAmount - fromState.stake);
@@ -261,7 +267,7 @@ contract Adjudicator {
                         finalAliceAmount = (fromState.resolution.aliceAmount - fromState.stake);
                         finalBobAmount = (fromState.resolution.bobAmount + fromState.stake);
                     }
-                } else if (fromState.play.letterCount < toState.play.letterCount) {
+                } else if (fromState.play.totalLetterCount < toState.play.totalLetterCount) {
                     if (isAlice == false) {
                         finalAliceAmount = (fromState.resolution.aliceAmount - fromState.stake);
                         finalBobAmount = (fromState.resolution.bobAmount + fromState.stake);
@@ -273,15 +279,34 @@ contract Adjudicator {
                     finalAliceAmount = fromState.resolution.aliceAmount;
                     finalBobAmount = fromState.resolution.bobAmount;
                 }
-                require(toState.resolution.aliceAmount == finalAliceAmount);
-                require(toState.resolution.bobAmount == finalBobAmount);
-            } else if (toState.stateType == StateType.CONCLUDE) {
-                isValid = isValid && (fromState.turnNum < toState.turnNum);
-                isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
-                isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+                isValid = isValid && (toState.resolution.aliceAmount == finalAliceAmount);
+                isValid = isValid && (toState.resolution.bobAmount == finalBobAmount);
             } else {
                 isValid = false;
             }
+        } else if (fromState.stateType == StateType.GAME_ACCEPT) {
+            isValid = isValid && (fromState.turnNum < toState.turnNum);
+            isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+            isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+            isValid = isValid && (toState.play.totalLetterCount > 0);
+
+            if (toState.stateType == StateType.GAME_PROPOSE) {
+                isValid = isValid && (toState.stake > 0);
+                isValid = isValid && (toState.stake <= toState.resolution.aliceAmount);
+                isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
+
+                isValid = isValid && (toState.play.totalLetterCount < toState.play.gameLetterCount);
+                isValid = isValid && (toState.play.opponentTotalLetterCount < toState.play.gameLetterCount);
+            } else if (toState.stateType == StateType.CONCLUDE) {
+                isValid = isValid && (
+                (toState.play.totalLetterCount == toState.play.gameLetterCount)
+                || (toState.play.opponentTotalLetterCount == toState.play.gameLetterCount));
+                isValid = isValid && (fromState.play.opponentTotalLetterCount == toState.play.totalLetterCount);
+            } else {
+                isValid = false;
+            }
+        } else {
+            isValid = false;
         }
 
         return isValid;
