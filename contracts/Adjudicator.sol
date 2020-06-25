@@ -216,6 +216,7 @@ contract Adjudicator {
         isValid = isValid && (toState.timestamp <= (now + 60));
         isValid = isValid && (toState.play.gameLetterCount == fromState.play.gameLetterCount);
         isValid = isValid && (toState.play.opponentTotalLetterCount == fromState.play.totalLetterCount);
+        isValid = isValid && (toState.timestamp >= fromState.timestamp);
 
         if (fromState.stateType == StateType.PRE_FUND_SETUP) {
             if (toState.stateType == StateType.POST_FUND_SETUP) {
@@ -238,9 +239,8 @@ contract Adjudicator {
                 isValid = isValid && (toState.stake <= toState.resolution.aliceAmount);
                 isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
                 isValid = isValid && (toState.play.totalLetterCount > 0);
-                // FIXME: Setting a random maximum letter limit. Implement an algorithm to validate
-                //        a given letter count and time period using a normal distribution.
-                isValid = isValid && (toState.play.totalLetterCount <= 200);
+                isValid = isValid && (toState.play.totalLetterCount < fromState.play.gameLetterCount);
+                isValid = isValid && (fromState.play.totalLetterCount < fromState.play.gameLetterCount);
                 isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
                 isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
             } else if (toState.stateType == StateType.CONCLUDE) {
@@ -302,6 +302,19 @@ contract Adjudicator {
                 (toState.play.totalLetterCount == toState.play.gameLetterCount)
                 || (toState.play.opponentTotalLetterCount == toState.play.gameLetterCount));
                 isValid = isValid && (fromState.play.opponentTotalLetterCount == toState.play.totalLetterCount);
+                isValid = isValid && (fromState.play.totalLetterCount == toState.play.opponentTotalLetterCount);
+            } else {
+                isValid = false;
+            }
+        } else if (fromState.stateType == StateType.CONCLUDE) {
+            isValid = isValid && (fromState.turnNum == toState.turnNum);
+            isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+            isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+            isValid = isValid && (fromState.play.opponentTotalLetterCount == toState.play.totalLetterCount);
+            isValid = isValid && (fromState.play.totalLetterCount == toState.play.opponentTotalLetterCount);
+            isValid = isValid && (toState.stake == 0);
+
+            if (toState.stateType == StateType.CONCLUDE) {
             } else {
                 isValid = false;
             }
