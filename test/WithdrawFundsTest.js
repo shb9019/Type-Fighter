@@ -53,7 +53,7 @@ contract("Withdraw submitted funds from contract", async accounts => {
         const initialBobBalance = await web3.eth.getBalance(bobKeys.public);
 
         try {
-            const tx = await adjudicator.methods[methodSignatures.withdrawFunds].sendTransaction(
+            await adjudicator.methods[methodSignatures.withdrawFunds].sendTransaction(
                 [aliceState, aliceSignature],
                 [bobState, bobSignature]
             );

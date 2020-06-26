@@ -346,6 +346,7 @@ contract Adjudicator {
     function forceMove(Move memory opponentMove, Move memory selfMove) public {
         require(selfMove.signature.signer == msg.sender);
         require(validMove(opponentMove, selfMove));
+        require(opponentMove.state.stateType != StateType.CONCLUDE);
 
         bytes32 channelHash = hash(opponentMove.state.channel);
         Challenge memory challenge = challenges[channelHash];
