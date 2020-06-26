@@ -26,7 +26,7 @@ const createTestChannel = async (adjudicator, channelExists) => {
     const resolutions = [aliceResolution, bobResolution];
     const timestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
     const opponent_timestamp = encodeParam('uint256', 0);
-    const stake = encodeParam('uint256', 10);
+    const stake = encodeParam('uint256', 0);
     const play = [encodeParam('uint256', 0), encodeParam('uint256', 0), encodeParam('uint256', 200)];
 
     const state = [preFundSetupType, channel, turnNum, resolutions, timestamp, opponent_timestamp, stake, play];
@@ -47,8 +47,8 @@ const createTestChannel = async (adjudicator, channelExists) => {
             });
 
         await adjudicator.methods[methodSignatures.createChannel].sendTransaction(
-            [state, bobSignature],
-            [state, aliceSignature], {
+            [state, aliceSignature],
+            [state, bobSignature], {
                 from: bobPublicKey,
                 value: 5000000
             });

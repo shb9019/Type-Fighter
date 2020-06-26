@@ -4,7 +4,7 @@ const {sleep, encodeParam, createTestChannel} = require("../utils");
 
 // Generate Bob's Game Propose and Alice's Game Accept Moves
 const getAliceBobMoves = async (adjudicator, bobPreFundSetupMove, endGame = false) => {
-    // Create Bob's Game Propose Move
+    // Create Alice's Game Propose Move
     const channel = bobPreFundSetupMove.state[1];
     const gameProposeType = encodeParam('uint8', 2);
     const turnNum = encodeParam('uint256', 2);
@@ -28,10 +28,6 @@ const getAliceBobMoves = async (adjudicator, bobPreFundSetupMove, endGame = fals
     // Create Alice's Game Accept Move
     const gameAcceptType = encodeParam('uint256', 3);
     const bobOpponentTimestamp = aliceState[4];
-    let bobTimestamp = encodeParam('uint256', Math.floor(new Date() / 1000));
-    if (endGame) {
-        bobTimestamp = aliceTimestamp;
-    }
     const bobStake = encodeParam('uint256', 200);
     let bobPlay = [encodeParam('uint256', 20), encodeParam('uint256', 18), encodeParam('uint256', 200)];
     let bobResolutions = [
@@ -52,7 +48,7 @@ const getAliceBobMoves = async (adjudicator, bobPreFundSetupMove, endGame = fals
         channel,
         turnNum,
         bobResolutions,
-        bobTimestamp,
+        aliceTimestamp,
         bobOpponentTimestamp,
         bobStake,
         bobPlay
@@ -70,7 +66,6 @@ contract("Create Force Move from Game Propose to Game Accept", async accounts =>
         let adjudicator = await Adjudicator.deployed();
         const [alicePreFundSetupMove, bobPreFundSetupMove] = await createTestChannel(adjudicator, false);
         const [aliceState, aliceSignature, bobState, bobSignature] = await getAliceBobMoves(adjudicator, bobPreFundSetupMove);
-        const channel = alicePreFundSetupMove.state[1];
 
         try {
             await adjudicator.methods[methodSignatures.forceMove].sendTransaction(

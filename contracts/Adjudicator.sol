@@ -13,6 +13,7 @@ contract Adjudicator {
         uint256 channelNonce;
     }
 
+    // TODO: Add new states to the state machine. Bruh...
     enum StateType {
         PRE_FUND_SETUP,
         POST_FUND_SETUP,
@@ -115,44 +116,12 @@ contract Adjudicator {
     }
 
     /**
-     * @dev Helper function to valid opponent player's pre fund setup moves
-     * @param preFundSetup Move, Signed move by msg.sender for prefund setup
-     * @param preFundSetupAck Signature, Signed move by opponent for prefund setup
-     * @param sender address, Address of contract interacting account
-     */
-    function validatePreFundSetupMoves(Move memory preFundSetup, Move memory preFundSetupAck, address sender) public view {
-        bool aliceBegan = (
-        preFundSetup.signature.signer == preFundSetup.state.channel.alice
-        && preFundSetupAck.signature.signer == preFundSetup.state.channel.bob
-        && preFundSetup.signature.signer == sender
-        );
-
-        bool bobBegan = (
-        preFundSetupAck.signature.signer == preFundSetup.state.channel.alice
-        && preFundSetup.signature.signer == preFundSetup.state.channel.bob
-        && preFundSetup.signature.signer == sender
-        );
-
-        require(aliceBegan || bobBegan);
-        require(
-            isSigned(hash(preFundSetup.state), preFundSetup.signature)
-            && isSigned(hash(preFundSetupAck.state), preFundSetupAck.signature)
-        );
-
-        require(preFundSetup.state.stateType == StateType.PRE_FUND_SETUP);
-        require(preFundSetup.state.turnNum == 0);
-        require(hash(preFundSetup.state) == hash(preFundSetupAck.state));
-
-        require(preFundSetup.state.timestamp <= now && preFundSetupAck.state.timestamp <= now);
-    }
-
-    /**
      * @dev Initiate a new channel using signed prefund setup messages
      * @param preFundSetup Move, Signed move by msg.sender for prefund setup
      * @param preFundSetupAck Signature, Signed move by opponent for prefund setup
      */
     function createChannel(Move memory preFundSetup, Move memory preFundSetupAck) public payable {
-        validatePreFundSetupMoves(preFundSetup, preFundSetupAck, msg.sender);
+        require(validMove(preFundSetup, preFundSetupAck));
 
         bool aliceBegan = (
         preFundSetup.signature.signer == preFundSetup.state.channel.alice
@@ -210,8 +179,10 @@ contract Adjudicator {
         bool isValid = true;
         bytes32 channelHash = hash(fromState.channel);
 
-        isValid = isValid && (toState.timestamp >= fromState.timestamp);
-        isValid = isValid && (toState.opponent_timestamp == fromState.timestamp);
+        if (fromState.stateType != StateType.PRE_FUND_SETUP) {
+            isValid = isValid && (toState.timestamp >= fromState.timestamp);
+            isValid = isValid && (toState.opponent_timestamp == fromState.timestamp);
+        }
         // Control how early the timestamp can be set by a malicious user
         isValid = isValid && (toState.timestamp >= (now - 60));
         isValid = isValid && (toState.timestamp <= (now + 60));
@@ -220,19 +191,34 @@ contract Adjudicator {
         isValid = isValid && (toState.timestamp >= fromState.timestamp);
 
         if (fromState.stateType == StateType.PRE_FUND_SETUP) {
-            if (toState.stateType == StateType.POST_FUND_SETUP) {
-                isValid = isValid && (channelFunds[channelHash].isSet == true);
+            if (toState.stateType == StateType.PRE_FUND_SETUP) {
                 isValid = isValid && (fromState.turnNum == toState.turnNum);
                 isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
                 isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+                isValid = isValid && (!isAlice);
+            } else if (toState.stateType == StateType.POST_FUND_SETUP) {
+                isValid = isValid && (channelFunds[channelHash].isSet == true);
+                isValid = isValid && (channelFunds[channelHash].isFunded == true);
+                isValid = isValid && (fromState.turnNum == toState.turnNum);
+                isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+                isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+                isValid = isValid && (isAlice);
             } else if (toState.stateType == StateType.CONCLUDE) {
                 isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
                 isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+                isValid = isValid && (isAlice);
             } else {
                 isValid = false;
             }
         } else if (fromState.stateType == StateType.POST_FUND_SETUP) {
-            if (toState.stateType == StateType.GAME_PROPOSE) {
+            if (toState.stateType == StateType.POST_FUND_SETUP) {
+                isValid = isValid && (channelFunds[channelHash].isSet == true);
+                isValid = isValid && (channelFunds[channelHash].isFunded == true);
+                isValid = isValid && (fromState.turnNum == toState.turnNum);
+                isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
+                isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+                isValid = isValid && (!isAlice);
+            } else if (toState.stateType == StateType.GAME_PROPOSE) {
                 isValid = isValid && (fromState.turnNum < toState.turnNum);
                 isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
                 isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
@@ -244,14 +230,17 @@ contract Adjudicator {
                 isValid = isValid && (fromState.play.totalLetterCount < fromState.play.gameLetterCount);
                 isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
                 isValid = isValid && (toState.stake <= toState.resolution.bobAmount);
+                isValid = isValid && (isAlice);
             } else if (toState.stateType == StateType.CONCLUDE) {
                 isValid = isValid && (fromState.turnNum < toState.turnNum);
                 isValid = isValid && (fromState.resolution.aliceAmount == toState.resolution.aliceAmount);
                 isValid = isValid && (fromState.resolution.bobAmount == toState.resolution.bobAmount);
+                isValid = isValid && (isAlice);
             } else {
                 isValid = false;
             }
         } else if (fromState.stateType == StateType.GAME_PROPOSE) {
+            // TODO: Add POST_FUND and POST_FUND_ACK
             if (toState.stateType == StateType.GAME_ACCEPT) {
                 isValid = isValid && (fromState.turnNum == toState.turnNum);
                 isValid = isValid && (fromState.stake == toState.stake);
@@ -282,6 +271,7 @@ contract Adjudicator {
                 }
                 isValid = isValid && (toState.resolution.aliceAmount == finalAliceAmount);
                 isValid = isValid && (toState.resolution.bobAmount == finalBobAmount);
+                isValid = isValid && (!isAlice);
             } else {
                 isValid = false;
             }
@@ -298,12 +288,14 @@ contract Adjudicator {
 
                 isValid = isValid && (toState.play.totalLetterCount < toState.play.gameLetterCount);
                 isValid = isValid && (toState.play.opponentTotalLetterCount < toState.play.gameLetterCount);
+                isValid = isValid && (isAlice);
             } else if (toState.stateType == StateType.CONCLUDE) {
                 isValid = isValid && (
                 (toState.play.totalLetterCount == toState.play.gameLetterCount)
                 || (toState.play.opponentTotalLetterCount == toState.play.gameLetterCount));
                 isValid = isValid && (fromState.play.opponentTotalLetterCount == toState.play.totalLetterCount);
                 isValid = isValid && (fromState.play.totalLetterCount == toState.play.opponentTotalLetterCount);
+                isValid = isValid && (isAlice);
             } else {
                 isValid = false;
             }
@@ -314,6 +306,7 @@ contract Adjudicator {
             isValid = isValid && (fromState.play.opponentTotalLetterCount == toState.play.totalLetterCount);
             isValid = isValid && (fromState.play.totalLetterCount == toState.play.opponentTotalLetterCount);
             isValid = isValid && (toState.stake == 0);
+            isValid = isValid && (!isAlice);
 
             if (toState.stateType != StateType.CONCLUDE) {
                 isValid = false;
