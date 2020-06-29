@@ -1,8 +1,11 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import '../App.css';
 import {Button, Row} from 'react-bootstrap';
 
-function Dashboard() {
+function Dashboard(props) {
+    const {drizzle, drizzleState} = props;
+    console.log(drizzle);
+    console.log(drizzleState);
     return (
         <div className={'container dashboard'}>
             <Row className={'title-row'}>
