@@ -4,8 +4,14 @@ import {Button, Row} from 'react-bootstrap';
 
 function Dashboard(props) {
     const {drizzle, drizzleState} = props;
-    console.log(drizzle);
+
     console.log(drizzleState);
+
+    const requestPairing = async () => {
+        const result = await fetch(`http://localhost:3000/${drizzleState.accounts[0]}`);
+        console.log(result);
+    };
+
     return (
         <div className={'container dashboard'}>
             <Row className={'title-row'}>
@@ -22,7 +28,7 @@ function Dashboard(props) {
                 </div>
             </Row>
             <Row className={'match-button-row'}>
-                <Button variant={'primary'} className={'match-button'}>Start Match</Button>
+                <Button variant={'primary'} className={'match-button'} onClick={requestPairing}>Start Match</Button>
             </Row>
         </div>
     );
