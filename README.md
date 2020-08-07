@@ -4,7 +4,7 @@ A TypeRacer clone built on the Ethereum BlockChain and making off-chain
 computations for instant finality using State Channels. This application 
 is modelled as a force move game. Read more [here](https://magmo.com/force-move-games.pdf).
 
-_Work In Progress_
+_On Hold: Though I am excited to build this, my potato PC cannot handle the dev setup._
 
 ## Requirements
 
