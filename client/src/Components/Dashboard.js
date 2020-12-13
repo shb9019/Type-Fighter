@@ -38,7 +38,6 @@ function Dashboard(props) {
     setBob(bob);
     sleep(750);
     setIsMatchingUp(false);
-    console.log(alice, bob);
   }
 
   if (!isMatchInitiated) {
